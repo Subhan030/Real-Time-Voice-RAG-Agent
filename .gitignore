@@ -1,0 +1,30 @@
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables
+.env
+
+# ChromaDB persisted store
+chroma_store/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Whisper model cache
+*.bin
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

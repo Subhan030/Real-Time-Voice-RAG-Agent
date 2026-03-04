@@ -1,0 +1,15 @@
+faster-whisper
+pyaudio
+webrtcvad
+sounddevice
+numpy
+pdfplumber
+langchain
+langchain-community
+sentence-transformers
+chromadb
+groq
+elevenlabs
+pyttsx3
+pygame
+python-dotenv
