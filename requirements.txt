@@ -7,10 +7,10 @@ pdfplumber
 langchain
 langchain-community
 sentence-transformers
-chromadb
+faiss-cpu
+numpy
 groq
 elevenlabs
 pyttsx3
 pygame
-python-dotenv
 

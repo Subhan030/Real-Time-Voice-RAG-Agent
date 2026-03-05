@@ -13,7 +13,7 @@ from stt.transcriber import listen_and_transcribe, listen_from_preroll
 from llm.generator import generate_stream
 from tts.speaker import speak, speak_stream_interruptible
 
-CHROMA_STORE_DIR = "chroma_store"
+FAISS_STORE_DIR = "faiss_store"
 
 # VAD settings for barge-in monitoring
 _SAMPLE_RATE = 16000
@@ -24,7 +24,7 @@ _VAD_AGGRESSIVENESS = 3     # 0-3: 3 = strictest speech detection
 _ENERGY_THRESHOLD = 300     # RMS amplitude sweet spot (ignores echo, catches real speech)
 
 def ensure_index():
-    if not os.path.exists(CHROMA_STORE_DIR) or not os.listdir(CHROMA_STORE_DIR):
+    if not os.path.exists(FAISS_STORE_DIR) or not os.listdir(FAISS_STORE_DIR):
         print("[Main] No index found. Building index from knowledge_base/...")
         build_index()
     else:

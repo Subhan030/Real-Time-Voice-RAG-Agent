@@ -2,10 +2,12 @@ import os
 import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer
-import chromadb
+import faiss
+import pickle
+import numpy as np
 
 KNOWLEDGE_BASE_DIR = "knowledge_base"
-CHROMA_STORE_DIR = "chroma_store"
+FAISS_STORE_DIR = "faiss_store"
 COLLECTION_NAME = "rag_docs"
 CHUNK_SIZE = 400
 CHUNK_OVERLAP = 50
@@ -51,25 +53,26 @@ def build_index(clear_existing: bool = False):
 
     model = SentenceTransformer("all-MiniLM-L6-v2")
     texts = [c["text"] for c in chunks]
-    embeddings = model.encode(texts, show_progress_bar=True).tolist()
-
-    client = chromadb.PersistentClient(path=CHROMA_STORE_DIR)
-
-    if clear_existing:
-        try:
-            client.delete_collection(COLLECTION_NAME)
-            print(f"[Indexer] Cleared existing collection.")
-        except Exception:
-            pass
-
-    collection = client.get_or_create_collection(COLLECTION_NAME)
-    collection.add(
-        ids=[c["id"] for c in chunks],
-        documents=texts,
-        embeddings=embeddings,
-        metadatas=[{"source": c["source"]} for c in chunks]
-    )
-    print("[Indexer] Index built and saved to chroma_store/")
+    embeddings = model.encode(texts, show_progress_bar=True)
+    
+    # Create FAISS Store directory
+    os.makedirs(FAISS_STORE_DIR, exist_ok=True)
+    
+    # Initialize and build FAISS index
+    dimension = embeddings.shape[1]
+    index = faiss.IndexFlatL2(dimension)
+    index.add(np.array(embeddings).astype("float32"))
+    
+    # Save the index to disk
+    index_path = os.path.join(FAISS_STORE_DIR, "index.faiss")
+    faiss.write_index(index, index_path)
+    
+    # Save the chunk dictionaries (metadata and text)
+    chunks_path = os.path.join(FAISS_STORE_DIR, "chunks.pkl")
+    with open(chunks_path, "wb") as f:
+        pickle.dump(chunks, f)
+        
+    print("[Indexer] Index built and saved to faiss_store/")
 
 if __name__ == "__main__":
     build_index()
