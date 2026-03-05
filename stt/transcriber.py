@@ -8,7 +8,7 @@ from faster_whisper import WhisperModel
 
 SAMPLE_RATE = 16000
 FRAME_DURATION_MS = 30          # VAD frame size (10, 20, or 30ms only)
-SILENCE_TIMEOUT_FRAMES = 50     # ~1.5 seconds of silence before stopping
+SILENCE_TIMEOUT_FRAMES = 27     # ~0.8 seconds of silence before stopping (was 1.5s)
 VAD_AGGRESSIVENESS = 2          # 0–3: higher = more aggressive filtering
 WHISPER_MODEL_SIZE = "tiny"     # Options: tiny, base, small, medium
 
@@ -73,14 +73,36 @@ def listen_and_transcribe() -> str:
     return transcribe(audio)
 
 
-def transcribe_audio_bytes(audio_bytes: bytes, suffix: str = ".webm") -> str:
-    """Transcribe audio bytes from browser (webm/wav). Used by the web server."""
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
-        f.write(audio_bytes)
-        tmp_path = f.name
-    segments, _ = _whisper.transcribe(tmp_path, beam_size=1)
-    text = " ".join(seg.text for seg in segments).strip()
-    os.unlink(tmp_path)
-    print(f"[STT] Transcribed: {text}")
-    return text
+def listen_from_preroll(preroll_frames: list) -> str:
+    """Continue recording from pre-captured barge-in frames so first words aren't lost."""
+    pa = pyaudio.PyAudio()
+    stream = pa.open(
+        format=pyaudio.paInt16, channels=1, rate=SAMPLE_RATE, input=True,
+        frames_per_buffer=int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
+    )
+    print("[STT] Listening... (speak now)")
+    # Seed with frames already captured during barge-in detection
+    frames = list(preroll_frames)
+    silence_count = 0
+    speaking_started = True  # Already know user is speaking
+
+    while True:
+        frame = stream.read(int(SAMPLE_RATE * FRAME_DURATION_MS / 1000), exception_on_overflow=False)
+        is_speech = _vad.is_speech(frame, SAMPLE_RATE)
+        if is_speech:
+            silence_count = 0
+            frames.append(frame)
+        else:
+            silence_count += 1
+            frames.append(frame)
+            if silence_count > SILENCE_TIMEOUT_FRAMES:
+                break
+
+    stream.stop_stream()
+    stream.close()
+    pa.terminate()
+    print("[STT] Recording complete.")
+    return transcribe(b"".join(frames))
+
+
 

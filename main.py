@@ -9,7 +9,7 @@ load_dotenv()
 
 from rag.indexer import build_index
 from rag.retriever import retrieve
-from stt.transcriber import listen_and_transcribe
+from stt.transcriber import listen_and_transcribe, listen_from_preroll
 from llm.generator import generate_stream
 from tts.speaker import speak, speak_stream_interruptible
 
@@ -19,9 +19,9 @@ CHROMA_STORE_DIR = "chroma_store"
 _SAMPLE_RATE = 16000
 _FRAME_MS = 30
 _FRAME_SIZE = int(_SAMPLE_RATE * _FRAME_MS / 1000)
-_BARGE_IN_FRAMES = 15       # ~450ms of sustained speech to trigger barge-in
-_VAD_AGGRESSIVENESS = 3     # 0-3: higher = stricter speech detection
-_ENERGY_THRESHOLD = 300     # RMS amplitude (0-32768); raise to require louder speech
+_BARGE_IN_FRAMES = 20       # ~600ms of sustained speech to trigger barge-in
+_VAD_AGGRESSIVENESS = 3     # 0-3: 3 = strictest speech detection
+_ENERGY_THRESHOLD = 300     # RMS amplitude sweet spot (ignores echo, catches real speech)
 
 def ensure_index():
     if not os.path.exists(CHROMA_STORE_DIR) or not os.listdir(CHROMA_STORE_DIR):
@@ -31,9 +31,13 @@ def ensure_index():
         print("[Main] Existing index found. Skipping re-index.")
 
 
-def barge_in_monitor(interrupt_event: threading.Event, stop_event: threading.Event):
+def barge_in_monitor(interrupt_event: threading.Event, stop_event: threading.Event,
+                     preroll_frames: list):
     """Background thread: monitors mic via VAD + energy. Sets interrupt_event if user speaks."""
     import numpy as np
+    import time
+    # Grace period: ignore the first 350ms so TTS audio burst doesn't self-trigger
+    time.sleep(0.35)
     vad = webrtcvad.Vad(_VAD_AGGRESSIVENESS)
     pa = pyaudio.PyAudio()
     stream = pa.open(
@@ -42,6 +46,7 @@ def barge_in_monitor(interrupt_event: threading.Event, stop_event: threading.Eve
         frames_per_buffer=_FRAME_SIZE
     )
     speech_count = 0
+    candidate_frames = []
     try:
         while not stop_event.is_set():
             frame = stream.read(_FRAME_SIZE, exception_on_overflow=False)
@@ -51,16 +56,41 @@ def barge_in_monitor(interrupt_event: threading.Event, stop_event: threading.Eve
             is_speech = vad.is_speech(frame, _SAMPLE_RATE)
             if is_loud_enough and is_speech:
                 speech_count += 1
+                candidate_frames.append(frame)  # Collect for pre-roll
                 if speech_count >= _BARGE_IN_FRAMES:
+                    preroll_frames.extend(candidate_frames)  # Pass audio to STT
                     print("\n[Main] Barge-in detected — interrupting agent.")
                     interrupt_event.set()
                     break
             else:
                 speech_count = 0
+                candidate_frames.clear()  # Reset if silence detected
     finally:
         stream.stop_stream()
         stream.close()
         pa.terminate()
+
+
+def speak_response(question: str):
+    """Retrieve context, generate answer, speak with barge-in. Returns preroll if interrupted."""
+    context = retrieve(question)
+    print("[Main] Generating answer...")
+    sentence_stream = generate_stream(question, context)
+
+    interrupt_event = threading.Event()
+    stop_monitor = threading.Event()
+    preroll_frames = []
+    monitor_thread = threading.Thread(
+        target=barge_in_monitor,
+        args=(interrupt_event, stop_monitor, preroll_frames),
+        daemon=True
+    )
+    monitor_thread.start()
+    speak_stream_interruptible(sentence_stream, interrupt_event)
+    stop_monitor.set()
+    monitor_thread.join(timeout=1.0)
+
+    return preroll_frames if interrupt_event.is_set() else None
 
 
 def run():
@@ -75,32 +105,17 @@ def run():
             if not question:
                 continue
 
-            # Step 2: Retrieve
+            # Step 2: Retrieve + generate + speak (with barge-in)
             print("[Main] Retrieving context...")
-            context = retrieve(question)
+            preroll = speak_response(question)
 
-            # Step 3: Generate + stream to TTS with barge-in support
-            print("[Main] Generating answer...")
-            sentence_stream = generate_stream(question, context)
-
-            interrupt_event = threading.Event()
-            stop_monitor = threading.Event()
-            monitor_thread = threading.Thread(
-                target=barge_in_monitor,
-                args=(interrupt_event, stop_monitor),
-                daemon=True
-            )
-            monitor_thread.start()
-
-            speak_stream_interruptible(sentence_stream, interrupt_event)
-
-            # Signal monitor thread to stop
-            stop_monitor.set()
-            monitor_thread.join(timeout=1.0)
-
-            if interrupt_event.is_set():
+            # If interrupted, immediately listen using pre-roll frames then respond again
+            if preroll is not None:
                 print("[Main] Interrupted — listening immediately...")
-                # Loop back to listen right away (no delay)
+                question2 = listen_from_preroll(preroll) if preroll else listen_and_transcribe()
+                if question2:
+                    print("[Main] Retrieving context...")
+                    speak_response(question2)
 
         except KeyboardInterrupt:
             print("\n[Main] Shutting down. Goodbye!")
@@ -112,4 +127,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-

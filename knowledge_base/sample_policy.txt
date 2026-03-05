@@ -1,12 +1,27 @@
-Company Refund Policy
+# TechNova Inc. Comprehensive Return & Refund Policy
 
-1. All purchases are eligible for a full refund within 30 days of the original purchase date.
-2. To request a refund, contact our support team at support@example.com with your order number.
-3. Refunds are processed within 5-7 business days after approval.
-4. Digital products are eligible for refund only if they have not been downloaded or accessed.
-5. Shipping costs are non-refundable unless the return is due to our error.
-6. Items must be returned in their original packaging and in unused condition.
-7. After 30 days, exchanges may be offered at the discretion of customer service.
-8. Subscription services can be cancelled at any time, but partial month refunds are not provided.
-9. Gift cards and promotional items are non-refundable.
-10. For defective products, contact us immediately — we will replace or refund at no additional cost.
+## 1. General Return Guidelines
+TechNova guarantees customer satisfaction with every purchase. If you are not completely satisfied, all standard hardware purchases are eligible for a full refund within 30 days of the original purchase date. Devices must be returned in their original packaging, unaltered, and completely free of physical damage (scratches, dents, or liquid damage). Returns initiated between 31 and 60 days are accepted but are strictly subject to a 15% restocking fee. No returns are accepted after 60 days under any circumstances.
+
+## 2. Non-Refundable Items
+The following items are strictly non-refundable:
+- Digital software downloads and activation keys.
+- Annual or monthly subscription services (e.g., Cloud Sync Pro) once the billing cycle has started.
+- Promotional items, free gifts, and mystery boxes.
+- Gift cards (both physical and digital).
+- Clearance or "Final Sale" items.
+
+## 3. Shipping Costs
+Original shipping costs are non-refundable unless the return is a direct result of our error (e.g., you received an incorrect or defective item). Return shipping costs are the responsibility of the customer. However, TechNova provides prepaid return labels for a flat fee of $12, which will be deducted from your final refund amount. If you arrange your own shipping, we strongly recommend using a tracking service and purchasing shipping insurance.
+
+## 4. Defective Products & Warranty Claims
+If a product arrives damaged or defective, you must contact us immediately (within 72 hours of delivery). We will issue a prepaid return label and immediately dispatch a replacement unit at absolutely no additional cost. For defects discovered after 72 hours but within the 1-year limited warranty period, the item is eligible for free repair or replacement, but not a direct refund. You must register the product on the TechNova website within 14 days of purchase to activate the warranty.
+
+## 5. How to Request a Refund
+To initiate a refund request, please follow these precise steps:
+1. Contact our Customer Success team at returns@technova.example.com.
+2. Include your 10-digit Order ID in the subject line.
+3. Provide a brief explanation of why you are returning the item. If the item is defective, attach at least two clear photographs of the issue.
+4. Wait for an RMA (Return Merchandise Authorization) number. Do not ship any item without an RMA number clearly written on the outside of the box; doing so will result in the package being rejected and sent back to you.
+
+Refunds are processed to the original payment method within 5–7 business days after the return package is received and inspected at our fulfillment center.

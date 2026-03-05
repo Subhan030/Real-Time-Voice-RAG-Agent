@@ -1,5 +1,6 @@
 import os
 import io
+import threading
 import pyttsx3
 import pygame
 from dotenv import load_dotenv
@@ -89,13 +90,43 @@ def speak_stream(sentence_generator):
 
 
 def speak_stream_interruptible(sentence_generator, interrupt_event):
-    """Speak sentences one by one, stopping mid-sentence if interrupt_event fires."""
-    for sentence in sentence_generator:
-        if interrupt_event.is_set():
+    """
+    Parallel TTS pipeline: generate audio for sentence N+1 while playing N.
+    Eliminates the dead gap between sentences for natural conversational flow.
+    """
+    import queue as _queue
+
+    audio_q = _queue.Queue(maxsize=3)
+
+    def _producer():
+        for sentence in sentence_generator:
+            if interrupt_event.is_set():
+                break
+            print(f"[TTS] Speaking: {sentence}")
+            try:
+                audio_bytes, fmt = generate_audio(sentence)
+                audio_q.put((audio_bytes, fmt))
+            except Exception as e:
+                print(f"[TTS] Error generating audio: {e}")
+        audio_q.put(None)  # sentinel
+
+    producer_thread = threading.Thread(target=_producer, daemon=True)
+    producer_thread.start()
+
+    while True:
+        try:
+            item = audio_q.get(timeout=10)
+        except _queue.Empty:
             break
-        speak(sentence, interrupt_event)  # passes event into playback loop
-        if interrupt_event.is_set():
+        if item is None or interrupt_event.is_set():
             break
+        audio_bytes, fmt = item
+        _play_via_pygame(io.BytesIO(audio_bytes) if isinstance(audio_bytes, bytes) else audio_bytes,
+                         fmt, interrupt_event)
+
+    producer_thread.join(timeout=1.0)
+
+
 
 
 

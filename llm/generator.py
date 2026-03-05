@@ -58,7 +58,7 @@ def generate_stream(question: str, context: str):
     for chunk in stream:
         delta = chunk.choices[0].delta.content or ""
         buffer += delta
-        # Yield complete sentences to TTS as soon as they're ready
+        # Yield on sentence-ending punctuation
         while any(p in buffer for p in [".", "!", "?"]):
             for punct in [".", "!", "?"]:
                 idx = buffer.find(punct)
@@ -68,5 +68,12 @@ def generate_stream(question: str, context: str):
                     if sentence:
                         yield sentence
                     break
+        # Also yield at commas/clauses if buffer is long — starts TTS sooner
+        if len(buffer) > 80 and "," in buffer:
+            idx = buffer.rfind(",")
+            phrase = buffer[:idx + 1].strip()
+            buffer = buffer[idx + 1:].lstrip()
+            if phrase:
+                yield phrase
     if buffer.strip():
         yield buffer.strip()
