@@ -3,7 +3,12 @@ import os
 import threading
 import pyaudio
 import webrtcvad
+import warnings
 from dotenv import load_dotenv
+
+warnings.filterwarnings("ignore")
+import logging
+logging.getLogger("transformers").setLevel(logging.ERROR)
 
 load_dotenv()
 
