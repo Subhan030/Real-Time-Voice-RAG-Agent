@@ -42,7 +42,7 @@ def chunk_documents(docs: list[dict]) -> list[dict]:
             })
     return chunks
 
-def build_index():
+def build_index(clear_existing: bool = False):
     """Full pipeline: load → chunk → embed → store."""
     print("[Indexer] Loading documents...")
     docs = load_documents(KNOWLEDGE_BASE_DIR)
@@ -54,6 +54,14 @@ def build_index():
     embeddings = model.encode(texts, show_progress_bar=True).tolist()
 
     client = chromadb.PersistentClient(path=CHROMA_STORE_DIR)
+
+    if clear_existing:
+        try:
+            client.delete_collection(COLLECTION_NAME)
+            print(f"[Indexer] Cleared existing collection.")
+        except Exception:
+            pass
+
     collection = client.get_or_create_collection(COLLECTION_NAME)
     collection.add(
         ids=[c["id"] for c in chunks],
@@ -65,3 +73,4 @@ def build_index():
 
 if __name__ == "__main__":
     build_index()
+

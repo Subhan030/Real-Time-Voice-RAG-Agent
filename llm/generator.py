@@ -7,18 +7,21 @@ load_dotenv()
 _client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL = "llama-3.1-8b-instant"
 
-SYSTEM_PROMPT = """You are a helpful voice assistant. Answer the user's question
-using ONLY the provided context. Be concise — your answer will be spoken aloud.
-If the answer is not in the context, say: "I don't have that information in my knowledge base."
-Do not make up information. Do not use bullet points or markdown formatting."""
+SYSTEM_PROMPT = """You are a voice assistant. Your ONLY job is to answer questions based on the DOCUMENT CONTENT provided below.
+- Answer concisely — your reply will be spoken aloud.
+- Use ONLY information from the DOCUMENT CONTENT section. Never invent facts.
+- If the answer is not found in the DOCUMENT CONTENT, say exactly: "I don't have that information in my knowledge base."
+- Do NOT describe yourself or your own capabilities. If asked "what is the document about?", summarize the DOCUMENT CONTENT, not yourself."""
 
 def build_prompt(question: str, context: str) -> str:
-    return f"""Context:
+    return f"""DOCUMENT CONTENT:
+--- start ---
 {context}
+--- end ---
 
-Question: {question}
+User question: {question}
 
-Answer:"""
+Answer based only on the DOCUMENT CONTENT above:"""
 
 def generate(question: str, context: str) -> str:
     """Call Groq LLM with grounded prompt. Returns full response string."""

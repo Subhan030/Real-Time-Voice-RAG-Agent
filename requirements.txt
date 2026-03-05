@@ -13,3 +13,8 @@ elevenlabs
 pyttsx3
 pygame
 python-dotenv
+fastapi
+uvicorn[standard]
+python-multipart
+aiofiles
+

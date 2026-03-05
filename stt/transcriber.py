@@ -71,3 +71,16 @@ def listen_and_transcribe() -> str:
     """Combined convenience function: record → transcribe → return text."""
     audio = record_until_silence()
     return transcribe(audio)
+
+
+def transcribe_audio_bytes(audio_bytes: bytes, suffix: str = ".webm") -> str:
+    """Transcribe audio bytes from browser (webm/wav). Used by the web server."""
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        f.write(audio_bytes)
+        tmp_path = f.name
+    segments, _ = _whisper.transcribe(tmp_path, beam_size=1)
+    text = " ".join(seg.text for seg in segments).strip()
+    os.unlink(tmp_path)
+    print(f"[STT] Transcribed: {text}")
+    return text
+

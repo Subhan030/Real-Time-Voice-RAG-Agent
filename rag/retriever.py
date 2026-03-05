@@ -9,6 +9,12 @@ _model = SentenceTransformer("all-MiniLM-L6-v2")
 _client = chromadb.PersistentClient(path=CHROMA_STORE_DIR)
 _collection = _client.get_or_create_collection(COLLECTION_NAME)
 
+def reload_collection():
+    """Reload the collection reference after re-indexing."""
+    global _collection
+    _collection = _client.get_or_create_collection(COLLECTION_NAME)
+
+
 def retrieve(query: str) -> str:
     """Embed query and return top-k relevant chunks as a single context string."""
     query_embedding = _model.encode([query]).tolist()
